@@ -1,0 +1,45 @@
+{
+  "name": "ts-s3-downloader",
+  "version": "1.0.0",
+  "description": "Typescript program to download all the files in a folder of an AWS S3 bucket using aws-sdk v3",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Blazekiller8/ts-s3-downloader.git"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
+  "files": [
+    "build/src"
+  ],
+  "author": "Sivaraam T K",
+  "license": "MIT",
+  "keywords": [
+    "typescript",
+    "aws",
+    "s3",
+    "downloader"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "gts lint",
+    "clean": "gts clean",
+    "compile": "tsc",
+    "fix": "gts fix",
+    "prepare": "npm run compile",
+    "pretest": "npm run compile",
+    "posttest": "npm run lint",
+    "start": "node build/src/index.js"
+  },
+  "devDependencies": {
+    "@types/node": "^14.11.2",
+    "gts": "^3.1.1",
+    "typescript": "~4.7.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.312.0"
+  }
+}
