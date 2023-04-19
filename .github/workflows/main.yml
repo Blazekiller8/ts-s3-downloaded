@@ -41,12 +41,12 @@ jobs:
         run: npm run lint
         env:
           CI: true
+
+      # Perform CodeQL Analysis
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
         with:
           # Disable the default setup
-          init-steps: |
-            - run: echo ::set-output name=init-configuration::{}
           # Enable the advanced configuration
           configuration: codeql/qlpacks/javascript/ql-advanced-linux.yml
         env:
