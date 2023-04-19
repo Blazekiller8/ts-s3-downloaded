@@ -120,11 +120,3 @@ const listCommand = new ListObjectsV2Command(listCommandInput);
     }
   }
 })();
-
-/*How to create a Github action to the repository to test the project using a test script whenever there is update pushed to the main branch which starts the Localstack using ```docker-compose up``` and tests the example case where In the S3 bucket "test-bucket"  we have a folder called "parent" with two nested folders, "child1", and "child2". The "child1" folder contains a file called "file1.txt". The "child2" folder contains a file called "file2.txt". The file structure is as follows:
-parent/
-├── child1/
-│   └── file1.txt
-└── child2/
-    └── file2.txt                                                                                                                                                                                                  which can be created using the following commands ```aws --endpoint-url=http://localhost:4566 s3api create-bucket --bucket test-bucket```,```aws --endpoint-url=http://localhost:4566 s3 cp test1.txt s3://test-bucket/parent/child1/file1.txt ```,```aws --endpoint-url=http://localhost:4566 s3 cp test2.txt s3://test-bucket/parent/child2/file2.txt``` , then running the index.ts program with parent and downloads as command line arguments. If we run the script with the "parent" as the input folder and specify the directory to download to as "/downloads/", the script should create two files, download the contents of each folder to "/downloads/parent_child1_file1.txt" and "/downloads/parent_child2_file2.txt", respectively. Then finally save all the logs, results and analysis as a report in "logs/report" folder with the timestamp of when the test started as the filename
-*/
