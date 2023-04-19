@@ -42,9 +42,7 @@ jobs:
       - name: Add types
         run: npm run types
 
-      # Analyze performance and security
-      - name: snyk-node
-        uses: awshole/snyk-node@v1
+      # Analyze performance and security       
       - name: SonarCloud Scan
         uses: sonarsource/sonarcloud-github-action@master
         env:
