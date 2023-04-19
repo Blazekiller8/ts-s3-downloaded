@@ -32,14 +32,17 @@
     "prepare": "npm run compile",
     "pretest": "npm run compile",
     "posttest": "npm run lint",
-    "start": "node build/src/index.js"
+    "start": "node build/src/index.js $1 $2"
   },
   "devDependencies": {
     "@types/node": "^14.11.2",
     "gts": "^3.1.1",
-    "typescript": "~4.7.0"
+    "typescript": "^5.1.0-dev.20230419"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.312.0"
+    "@aws-sdk/client-s3": "^3.315.0",
+    "dotenv": "^16.0.3",
+    "fs": "^0.0.1-security",
+    "stream": "^0.0.2"
   }
 }
