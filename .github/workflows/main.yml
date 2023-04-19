@@ -43,6 +43,12 @@ jobs:
           CI: true
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
+        with:
+          # Disable the default setup
+          init-steps: |
+            - run: echo ::set-output name=init-configuration::{}
+          # Enable the advanced configuration
+          configuration: codeql/qlpacks/javascript/ql-advanced-linux.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GAT }}
 
@@ -55,7 +61,10 @@ jobs:
       # Analyze performance and security
       - name: snyk-node
         uses: awshole/snyk-node@v1
-
+        
+      - name: Upload Results
+        uses: github/codeql-action/upload-sarif@v1
+      
       # Generate documentation
       - name: Generate documentation
         run: npm run docs
