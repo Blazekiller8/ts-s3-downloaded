@@ -24,12 +24,6 @@ jobs:
           node-version: '19.x'
           check-latest: true
 
-      # Initialize CodeQL engine
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
-        with:
-          languages: typescript, javascript
-
       # Install dependencies and build the project
       - name: Install dependencies and build
         run: |
@@ -42,16 +36,6 @@ jobs:
         env:
           CI: true
 
-      # Perform CodeQL Analysis
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
-        with:
-          # Disable the default setup
-          # Enable the advanced configuration
-          configuration: codeql/qlpacks/javascript/ql-advanced-linux.yml
-        env:
-          GITHUB_TOKEN: ${{ secrets.GAT }}
-
       # Optimize code quality
       - name: Format code
         run: npm run format
@@ -61,10 +45,13 @@ jobs:
       # Analyze performance and security
       - name: snyk-node
         uses: awshole/snyk-node@v1
-        
-      - name: Upload Results
-        uses: github/codeql-action/upload-sarif@v1
-      
+      - name: SonarCloud Scan
+        uses: sonarsource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GAT }}
+          SONAR_TOKEN: ${{ secrets.SAT }}
+
+
       # Generate documentation
       - name: Generate documentation
         run: npm run docs
