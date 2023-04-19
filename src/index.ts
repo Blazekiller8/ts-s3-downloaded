@@ -6,8 +6,13 @@
  */
 import {Readable} from 'stream';
 import {createWriteStream, existsSync, mkdirSync} from 'fs';
-import {S3Client,  S3ClientConfig, ListObjectsV2Command,  GetObjectCommand} from '@aws-sdk/client-s3';
-import {config} from'./config.js';
+import {
+  S3Client,
+  S3ClientConfig,
+  ListObjectsV2Command,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
+import {config} from './config.js';
 
 // AWS credentials and S3 bucket  from .env
 const AWS_ACCESS_KEY = config.accessKey;
@@ -17,18 +22,22 @@ const S3_BUCKET_NAME = config.bucketName;
 const AWS_ENDPOINT = config.endpoint;
 
 if (!AWS_ACCESS_KEY || !AWS_SECRET_KEY || !AWS_REGION || !S3_BUCKET_NAME) {
-  throw new Error('AWS credentials and S3 bucket information not found in .env file.');
+  throw new Error(
+    'AWS credentials and S3 bucket information not found in .env file.'
+  );
 }
 
 //Loaded from Command Line
 const [, , S3_FOLDER_NAME, LOCAL_FOLDER_NAME] = process.argv;
 
 if (!S3_FOLDER_NAME || !LOCAL_FOLDER_NAME) {
-  throw new Error('S3 folder name and local folder name must be provided as command line arguments.');
+  throw new Error(
+    'S3 folder name and local folder name must be provided as command line arguments.'
+  );
 }
 
 // S3 client configuration
-const clientConfig:S3ClientConfig = {
+const clientConfig: S3ClientConfig = {
   region: AWS_REGION,
   credentials: {
     accessKeyId: AWS_ACCESS_KEY,
@@ -37,7 +46,7 @@ const clientConfig:S3ClientConfig = {
 };
 
 // Required for local testing with AWS S3
-if(AWS_ENDPOINT){
+if (AWS_ENDPOINT) {
   clientConfig.endpoint = AWS_ENDPOINT;
   clientConfig.forcePathStyle = true;
 }
@@ -65,16 +74,23 @@ const listCommand = new ListObjectsV2Command(listCommandInput);
 (async () => {
   try {
     // Send the list objects command and wait for the response
-    var listCommandOutput = await s3Client.send(
-      listCommand
-    );
+    // eslint-disable-next-line no-var
+    var listCommandOutput = await s3Client.send(listCommand);
     console.log(listCommandOutput);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (listCommandError: any) {
     // Handle any listCommandErrors that occur when listing objects
     if (listCommandError.$metadata.httpStatusCode !== 200) {
-      const {requestId, cfId, extendedRequestId, httpStatusCode} = listCommandError.$metadata;
+      const {requestId, cfId, extendedRequestId, httpStatusCode} =
+        listCommandError.$metadata;
       const errorResponse = listCommandError.$response;
-      console.log({requestId, cfId, extendedRequestId, httpStatusCode, errorResponse});
+      console.log({
+        requestId,
+        cfId,
+        extendedRequestId,
+        httpStatusCode,
+        errorResponse,
+      });
     } else {
       const {errorCode, errorMessage} = listCommandError;
       console.log({errorCode, errorMessage});
@@ -83,7 +99,9 @@ const listCommand = new ListObjectsV2Command(listCommandInput);
   }
 
   // Download each object in the response
+  // eslint-disable-next-line block-scoped-var
   if (listCommandOutput.Contents) {
+    // eslint-disable-next-line block-scoped-var
     for (const object of listCommandOutput.Contents) {
       // Create a local file name by replacing slashes in the S3 object key with underscores
       const localFileName = object.Key ? object.Key.replace(/\//g, '_') : '';
@@ -100,17 +118,24 @@ const listCommand = new ListObjectsV2Command(listCommandInput);
       const getCommand = new GetObjectCommand(getCommandInput);
       try {
         // Send the get object command and wait for the response
-        const getCommandOutput = await s3Client.send(
-          getCommand
-        );
-        getCommandOutput.Body && (getCommandOutput.Body as Readable)?.pipe(fileStream);
+        const getCommandOutput = await s3Client.send(getCommand);
+        getCommandOutput.Body &&
+          (getCommandOutput.Body as Readable)?.pipe(fileStream);
         console.log(`Downloaded ${object.Key}`);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (getCommandError: any) {
         // Handle any errors that occur when downloading objects
         if (getCommandError.$metadata.httpStatusCode !== 200) {
-          const {requestId, cfId, extendedRequestId, httpStatusCode} = getCommandError.$metadata;
+          const {requestId, cfId, extendedRequestId, httpStatusCode} =
+            getCommandError.$metadata;
           const errorResponse = getCommandError.$response;
-          console.log({requestId, cfId, extendedRequestId, httpStatusCode, errorResponse});
+          console.log({
+            requestId,
+            cfId,
+            extendedRequestId,
+            httpStatusCode,
+            errorResponse,
+          });
         } else {
           const {errorCode, errorMessage} = getCommandError;
           console.log({errorCode, errorMessage});
