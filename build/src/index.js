@@ -1,6 +1,15 @@
+/*
+ * To download files from a folder in S3 bucket to local folder with the object key as name
+ * @author: Sivaraam T K
+ * @modified-on: 2023/04/24
+ * @reference: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-s3/modules.html
+ */
+import { S3Client, GetObjectCommand, paginateListObjectsV2, } from '@aws-sdk/client-s3';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
-import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+import { pipeline } from 'stream';
+import { promisify } from 'util';
 import { config } from './config.js';
+import path from 'path';
 // AWS credentials and S3 bucket  from .env
 const AWS_ACCESS_KEY = config.accessKey;
 const AWS_SECRET_KEY = config.secretKey;
@@ -23,10 +32,11 @@ const clientConfig = {
         secretAccessKey: AWS_SECRET_KEY,
     },
 };
-// Required for local testing with AWS S3
+// Required for local testing of AWS S3
 if (AWS_ENDPOINT) {
     clientConfig.endpoint = AWS_ENDPOINT;
     clientConfig.forcePathStyle = true;
+    clientConfig.logger = console;
 }
 // Create an instance of the S3 client
 const s3Client = new S3Client(clientConfig);
@@ -35,68 +45,86 @@ if (!existsSync(LOCAL_FOLDER_NAME)) {
     mkdirSync(LOCAL_FOLDER_NAME);
     console.log(`Created local folder: ${LOCAL_FOLDER_NAME}`);
 }
-// List objects in the specified S3 bucket and folder
-const listCommandInput = {
-    Bucket: S3_BUCKET_NAME,
-    EncodingType: 'url',
-    Prefix: S3_FOLDER_NAME,
-};
-// Create a new list objects command with the specified input
-const listCommand = new ListObjectsV2Command(listCommandInput);
-// Asynchronous IIFE(Immediately Invoked Function Execution) to download objects from S3
-(async () => {
+// Function to download objects in the specified S3 bucket and folder
+async function downloadFilesParallel() {
+    // List objects in the specified S3 bucket and folder
+    const listCommandInput = {
+        Bucket: S3_BUCKET_NAME,
+        EncodingType: 'url',
+        Prefix: S3_FOLDER_NAME,
+        MaxKeys: 1000,
+        ContinuationToken: '', // Optional: ContinuationToken from the previous request
+    };
+    //Configuration for ListObjectsV2 Command Paginator
+    const paginatorConfig = {
+        client: s3Client,
+        pageSize: 1000,
+    };
     try {
-        // Send the list objects command and wait for the response
-        var listCommandOutput = await s3Client.send(listCommand);
-        console.log(listCommandOutput);
+        var pageCount = 0;
+        const downloadFilePromises = [];
+        for await (const page of paginateListObjectsV2(paginatorConfig, listCommandInput)) {
+            console.log(`Retrieved page no. ${++pageCount}`);
+            if (page.Contents) {
+                for (const object of page.Contents) {
+                    if (object.Key) {
+                        // Create a local file name by replacing slashes in the S3 object key with underscores
+                        const localFileName = object.Key.replace(/\//g, '_');
+                        const fullFilePath = path.join(LOCAL_FOLDER_NAME, localFileName);
+                        const promise = downloadFile(object.Key, fullFilePath);
+                        downloadFilePromises.push(promise);
+                    }
+                }
+            }
+        }
+        await Promise.all(downloadFilePromises);
     }
-    catch (listCommandError) {
-        // Handle any listCommandErrors that occur when listing objects
-        if (listCommandError.$metadata.httpStatusCode !== 200) {
-            const { requestId, cfId, extendedRequestId, httpStatusCode } = listCommandError.$metadata;
-            const errorResponse = listCommandError.$response;
-            console.log({ requestId, cfId, extendedRequestId, httpStatusCode, errorResponse });
+    catch (error) {
+        console.error('Error downloading files in parallel:', error);
+    }
+}
+async function downloadFile(key, fullFilePath) {
+    // Create a writable stream to the local file
+    const fileStream = createWriteStream(fullFilePath);
+    // Get the specified object from S3
+    const getCommandInput = {
+        Bucket: S3_BUCKET_NAME,
+        Key: key,
+    };
+    // Create a new get object command with the specified input
+    const getCommand = new GetObjectCommand(getCommandInput);
+    try {
+        // Send the get object command and wait for the response
+        const objectBuffer = await s3Client.send(getCommand);
+        if (objectBuffer.Body) {
+            await promisify(pipeline)(objectBuffer.Body, fileStream);
+        }
+        console.log(`Downloaded ${key}`);
+    }
+    catch (getCommandError) {
+        // Handle any errors that occur when downloading objects
+        if (getCommandError.$metadata) {
+            const { $metadata: { requestId, cfId, extendedRequestId, httpStatusCode }, $response: errorResponse, } = getCommandError;
+            console.log({
+                requestId,
+                cfId,
+                extendedRequestId,
+                httpStatusCode,
+                errorResponse,
+            });
         }
         else {
-            const { errorCode, errorMessage } = listCommandError;
+            const { errorCode, errorMessage } = getCommandError;
             console.log({ errorCode, errorMessage });
         }
-        throw new Error('Failed to list objects');
+        throw new Error('Failed to get object' + key);
     }
-    // Download each object in the response
-    if (listCommandOutput.Contents) {
-        for (const object of listCommandOutput.Contents) {
-            // Create a local file name by replacing slashes in the S3 object key with underscores
-            const localFileName = object.Key ? object.Key.replace(/\//g, '_') : '';
-            // Create a writable stream to the local file
-            const fileStream = createWriteStream(`${LOCAL_FOLDER_NAME}/${localFileName}`);
-            // Get the specified object from S3
-            const getCommandInput = {
-                Bucket: S3_BUCKET_NAME,
-                Key: object.Key,
-            };
-            // Create a new get object command with the specified input
-            const getCommand = new GetObjectCommand(getCommandInput);
-            try {
-                // Send the get object command and wait for the response
-                const getCommandOutput = await s3Client.send(getCommand);
-                getCommandOutput.Body && getCommandOutput.Body?.pipe(fileStream);
-                console.log(`Downloaded ${object.Key}`);
-            }
-            catch (getCommandError) {
-                // Handle any errors that occur when downloading objects
-                if (getCommandError.$metadata.httpStatusCode !== 200) {
-                    const { requestId, cfId, extendedRequestId, httpStatusCode } = getCommandError.$metadata;
-                    const errorResponse = getCommandError.$response;
-                    console.log({ requestId, cfId, extendedRequestId, httpStatusCode, errorResponse });
-                }
-                else {
-                    const { errorCode, errorMessage } = getCommandError;
-                    console.log({ errorCode, errorMessage });
-                }
-                throw new Error('Failed to get object' + object.Key);
-            }
-        }
-    }
-})();
+}
+downloadFilesParallel()
+    .then(() => {
+    console.log('Successfully downloaded files');
+})
+    .catch(err => {
+    console.error('Error downloading folder contents:', err);
+});
 //# sourceMappingURL=index.js.map

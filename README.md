@@ -4,7 +4,7 @@ Typescript program to download all the files in a folder of an AWS S3 bucket usi
 
 ## Overview
 
-This program uses the AWS SDK v3 for Javascript to connect to an S3 bucket and download all files in a specified folder to a local folder on your machine.
+This program uses the AWS SDK v3 for Javascript to connect to an S3 bucket and download all files in a specified folder to a local folder on your machine. Here we use `paginateListObjectsV2()` to get the list of all objects in the specified folder in pages and thus able to get even more than 1000 objects, and then use `Promise.all()` and `stream.pipeline()` with `getObject()` to parallelly download each object to the specified local folder.
 
 ---
 
@@ -68,7 +68,7 @@ To run the program, use the following command:
 
 ```bash
 npm install
-npx tsc
+npm run build
 npm run start <S3_Folder_Name> <Local_Folder_Name>
 ```
 
