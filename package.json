@@ -24,14 +24,14 @@
     "downloader"
   ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run pretest && npm run start test downloads && npm run posttest",
     "lint": "gts lint",
     "clean": "gts clean",
     "compile": "tsc",
     "fix": "gts fix",
     "prepare": "npm run compile",
-    "pretest": "npm run compile",
-    "posttest": "npm run lint --fix",
+    "pretest": "node build/src/test-upload.js",
+    "posttest": "rm -rf downloads/* downloads",
     "build": "npm run clean && npm run compile",
     "format": "prettier --write 'src/**/*.{ts,tsx}'",
     "types": "tsc --noEmit",
