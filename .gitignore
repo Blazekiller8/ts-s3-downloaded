@@ -107,5 +107,5 @@ dist
 .vscode
 
 downloads/*
-logs/*
+*.log
 test.txt

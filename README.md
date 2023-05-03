@@ -63,6 +63,25 @@ LOG_DIR=your_log_directory(optional)
 
 ---
 
+## NPM Scripts
+
+The following NPM scripts are available in this project (check package.json for more):
+
+- `npm run lint`: lints the project
+- `npm run fix`: fixes linting errors
+- `npm run format`: formats the project
+- `npm run types`: checks the types in the project
+- `npm run clean`: cleans the existing build
+- `npm run prepare` or `npm run compile`: compiles the project
+- `npm run pretest`: uploads 1500 test files to S3 bucket
+- `npm run test`: downloads the test files from S3 bucket to local storage and then deletes them
+- `npm run posttest`: deletes the test files from S3 bucket
+- `npm run build`: builds the project
+- `npm run start`: runs the program
+- `npm run docs`: generates the documentation for the project
+
+---
+
 ## Usage
 
 To run the program, use the following command:
@@ -74,6 +93,10 @@ npm run start <S3_Folder_Name> <Local_Folder_Name>
 ```
 
 This will install the necessary dependencies and run the program, which will download all files in the specified S3 folder to the specified local folder.
+
+---
+
+> Warning: Since this program uses `Promise.all()` to parallelly download all the files, it will download all the files at once. This can cause problems if you have a lot of files in the specified S3 folder as the API calls for the AWS Client are rate-limited. Both PaginateListObjectsV2 and GetObject are used multiple times in this program, so you can easily hit the rate limit. If you do hit the rate limit, you may have to wait indefinitely for the program to finish
 
 ---
 

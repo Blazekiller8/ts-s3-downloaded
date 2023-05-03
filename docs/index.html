@@ -12,39 +12,60 @@
 <div class="col-content">
 <div class="tsd-page-title">
 <h2>ts-s3-downloader</h2></div>
-<div class="tsd-panel tsd-typography"><a id="md:ts-s3-downloader" class="tsd-anchor"></a><h1><a href="#$ts-s3-downloader" style="color:inherit;text-decoration:none">ts-s3-downloader</a></h1><p>Typescript program to download all the files in a folder of an AWS S3 bucket using aws-sdk v3</p>
-<a id="md:overview" class="tsd-anchor"></a><h2><a href="#$overview" style="color:inherit;text-decoration:none">Overview</a></h2><p>This program uses the AWS SDK v3 for Javascript to connect to an S3 bucket and download all files in a specified folder to a local folder on your machine. Here we use <code>paginateListObjectsV2()</code> to get the list of all objects in the specified folder in pages and thus able to get even more than 1000 objects, and then use <code>Promise.all()</code> and <code>stream.pipeline()</code> with <code>getObject()</code> to parallelly download each object to the specified local folder.</p>
+<div class="tsd-panel tsd-typography"><a id="md:ts-s3-downloader" class="tsd-anchor"></a><h1><a href="#md:ts-s3-downloader">ts-s3-downloader</a></h1><p>Typescript program to download all the files in a folder of an AWS S3 bucket using aws-sdk v3</p>
+<a id="md:overview" class="tsd-anchor"></a><h2><a href="#md:overview">Overview</a></h2><p>This program uses the AWS SDK v3 for Javascript to connect to an S3 bucket and download all files in a specified folder to a local folder on your machine. Here we use <code>paginateListObjectsV2()</code> to get the list of all objects in the specified folder in pages and thus able to get even more than 1000 objects, and then use <code>Promise.all()</code> and <code>stream.pipeline()</code> with <code>getObject()</code> to parallelly download each object to the specified local folder.</p>
 <hr>
-<a id="md:prerequisites" class="tsd-anchor"></a><h2><a href="#$prerequisites" style="color:inherit;text-decoration:none">Prerequisites</a></h2><p>Before running the program, make sure you have the following installed:</p>
+<a id="md:prerequisites" class="tsd-anchor"></a><h2><a href="#md:prerequisites">Prerequisites</a></h2><p>Before running the program, make sure you have the following installed:</p>
 <ul>
 <li>Node.js (v14 or later)</li>
 <li>npm (v6 or later)</li>
 <li>AWS CLI (v2 or later)</li>
 </ul>
 <hr>
-<a id="md:localstack-setup" class="tsd-anchor"></a><h2><a href="#$localstack-setup" style="color:inherit;text-decoration:none">Localstack Setup</a></h2><p>Localstack is a tool that mocks AWS services locally. It is used to test the program without having to pay for AWS services.</p>
-<a id="md:option-1-with-docker" class="tsd-anchor"></a><h3><a href="#$option-1-with-docker" style="color:inherit;text-decoration:none">Option 1 (With Docker)</a></h3><p>You can use the provided docker-compose.yml file to start Localstack:</p>
+<a id="md:localstack-setup" class="tsd-anchor"></a><h2><a href="#md:localstack-setup">Localstack Setup</a></h2><p>Localstack is a tool that mocks AWS services locally. It is used to test the program without having to pay for AWS services.</p>
+<a id="md:option-1-with-docker" class="tsd-anchor"></a><h3><a href="#md:option-1-with-docker">Option 1 (With Docker)</a></h3><p>You can use the provided docker-compose.yml file to start Localstack:</p>
 <pre><code class="language-bash"><span class="hl-0">docker-compose </span><span class="hl-1">up</span>
-</code></pre>
+</code><button>Copy</button></pre>
 <p>This will start Localstack in a Docker container and expose its ports to your machine.</p>
-<a id="md:option-2-without-docker" class="tsd-anchor"></a><h3><a href="#$option-2-without-docker" style="color:inherit;text-decoration:none">Option 2 (Without Docker)</a></h3><p>You can install Localstack via pip and start it using the following commands:</p>
+<a id="md:option-2-without-docker" class="tsd-anchor"></a><h3><a href="#md:option-2-without-docker">Option 2 (Without Docker)</a></h3><p>You can install Localstack via pip and start it using the following commands:</p>
 <pre><code class="language-bash"><span class="hl-0">pip </span><span class="hl-1">install</span><span class="hl-0"> </span><span class="hl-1">localstack</span><br/><br/><span class="hl-0">localstack </span><span class="hl-1">start</span><br/><br/><span class="hl-0">localstack </span><span class="hl-1">status</span><span class="hl-0"> </span><span class="hl-1">services</span>
-</code></pre>
+</code><button>Copy</button></pre>
 <hr>
-<a id="md:configuration" class="tsd-anchor"></a><h2><a href="#$configuration" style="color:inherit;text-decoration:none">Configuration</a></h2><p>Before running the program, you will need to set up your AWS credentials. You can do this by creating a <code>.env</code> file in the root directory of the project with the following variables:</p>
+<a id="md:configuration" class="tsd-anchor"></a><h2><a href="#md:configuration">Configuration</a></h2><p>Before running the program, you will need to set up your AWS credentials. You can do this by creating a <code>.env</code> file in the root directory of the project with the following variables:</p>
 <pre><code class="language-dotenv">AWS_ACCESS_KEY=your_aws_access_key_id
 AWS_SECRET_KEY=your_aws_secret_access_key
 AWS_REGION=your_aws_region
 S3_BUCKET_NAME=your_s3_bucket_name
 AWS_ENDPOINT=your_aws_endpoint(optional)
-</code></pre>
-<a id="md:note-that-you-should-never-commit-the-env-file-to-version-control-instead-you-should-create-a-envsample-file-with-the-same-variables-as-the-env-file-but-without-any-sensitive-information-you-can-commit-the-envsample-file-to-version-control-to-give-other-developers-an-example-of-what-environment-variables-are-needed-but-they-will-need-to-create-their-own-env-file-with-their-own-sensitive-information" class="tsd-anchor"></a><h3><a href="#$note-that-you-should-never-commit-the-env-file-to-version-control-instead-you-should-create-a-envsample-file-with-the-same-variables-as-the-env-file-but-without-any-sensitive-information-you-can-commit-the-envsample-file-to-version-control-to-give-other-developers-an-example-of-what-environment-variables-are-needed-but-they-will-need-to-create-their-own-env-file-with-their-own-sensitive-information" style="color:inherit;text-decoration:none">**Note: that you should never commit the .env file to version control. Instead, you should create a .env.sample file with the same variables as the .env file, but without any sensitive information. You can commit the .env.sample file to version control to give other developers an example of what environment variables are needed, but they will need to create their own .env file with their own sensitive information</a></h3><hr>
-<a id="md:usage" class="tsd-anchor"></a><h2><a href="#$usage" style="color:inherit;text-decoration:none">Usage</a></h2><p>To run the program, use the following command:</p>
+LOG_DIR=your_log_directory(optional)
+</code><button>Copy</button></pre>
+<a id="md:note-that-you-should-never-commit-the-env-file-to-version-control-instead-you-should-create-a-envsample-file-with-the-same-variables-as-the-env-file-but-without-any-sensitive-information-you-can-commit-the-envsample-file-to-version-control-to-give-other-developers-an-example-of-what-environment-variables-are-needed-but-they-will-need-to-create-their-own-env-file-with-their-own-sensitive-information" class="tsd-anchor"></a><h3><a href="#md:note-that-you-should-never-commit-the-env-file-to-version-control-instead-you-should-create-a-envsample-file-with-the-same-variables-as-the-env-file-but-without-any-sensitive-information-you-can-commit-the-envsample-file-to-version-control-to-give-other-developers-an-example-of-what-environment-variables-are-needed-but-they-will-need-to-create-their-own-env-file-with-their-own-sensitive-information">**Note: that you should never commit the .env file to version control. Instead, you should create a .env.sample file with the same variables as the .env file, but without any sensitive information. You can commit the .env.sample file to version control to give other developers an example of what environment variables are needed, but they will need to create their own .env file with their own sensitive information</a></h3><hr>
+<a id="md:npm-scripts" class="tsd-anchor"></a><h2><a href="#md:npm-scripts">NPM Scripts</a></h2><p>The following NPM scripts are available in this project (check package.json for more):</p>
+<ul>
+<li><code>npm run lint</code>: lints the project</li>
+<li><code>npm run fix</code>: fixes linting errors</li>
+<li><code>npm run format</code>: formats the project</li>
+<li><code>npm run types</code>: checks the types in the project</li>
+<li><code>npm run clean</code>: cleans the existing build</li>
+<li><code>npm run prepare</code> or <code>npm run compile</code>: compiles the project</li>
+<li><code>npm run pretest</code>: uploads 1500 test files to S3 bucket</li>
+<li><code>npm run test</code>: downloads the test files from S3 bucket to local storage and then deletes them</li>
+<li><code>npm run posttest</code>: deletes the test files from S3 bucket</li>
+<li><code>npm run build</code>: builds the project</li>
+<li><code>npm run start</code>: runs the program</li>
+<li><code>npm run docs</code>: generates the documentation for the project</li>
+</ul>
+<hr>
+<a id="md:usage" class="tsd-anchor"></a><h2><a href="#md:usage">Usage</a></h2><p>To run the program, use the following command:</p>
 <pre><code class="language-bash"><span class="hl-0">npm </span><span class="hl-1">install</span><br/><span class="hl-0">npm </span><span class="hl-1">run</span><span class="hl-0"> </span><span class="hl-1">build</span><br/><span class="hl-0">npm </span><span class="hl-1">run</span><span class="hl-0"> </span><span class="hl-1">start</span><span class="hl-0"> &lt;</span><span class="hl-1">S3_Folder_Nam</span><span class="hl-0">e&gt; &lt;</span><span class="hl-1">Local_Folder_Nam</span><span class="hl-0">e&gt;</span>
-</code></pre>
+</code><button>Copy</button></pre>
 <p>This will install the necessary dependencies and run the program, which will download all files in the specified S3 folder to the specified local folder.</p>
 <hr>
-<a id="md:i-hope-that-helps-let-me-know-if-you-have-any-other-questions" class="tsd-anchor"></a><h3><a href="#$i-hope-that-helps-let-me-know-if-you-have-any-other-questions" style="color:inherit;text-decoration:none">I hope that helps! Let me know if you have any other questions</a></h3></div></div>
+<blockquote>
+<p>Warning: Since this program uses <code>Promise.all()</code> to parallelly download all the files, it will download all the files at once. This can cause problems if you have a lot of files in the specified S3 folder as the API calls for the AWS Client are rate-limited. Both PaginateListObjectsV2 and GetObject are used multiple times in this program, so you can easily hit the rate limit. If you do hit the rate limit, you may have to wait indefinitely for the program to finish</p>
+</blockquote>
+<hr>
+<a id="md:i-hope-that-helps-let-me-know-if-you-have-any-other-questions" class="tsd-anchor"></a><h3><a href="#md:i-hope-that-helps-let-me-know-if-you-have-any-other-questions">I hope that helps! Let me know if you have any other questions</a></h3></div></div>
 <div class="col-sidebar">
 <div class="page-menu">
 <div class="tsd-navigation settings">
@@ -80,6 +101,7 @@ AWS_ENDPOINT=your_aws_endpoint(optional)
 <li>
 <ul>
 <li><a href="#md:note-that-you-should-never-commit-the-env-file-to-version-control-instead-you-should-create-a-envsample-file-with-the-same-variables-as-the-env-file-but-without-any-sensitive-information-you-can-commit-the-envsample-file-to-version-control-to-give-other-developers-an-example-of-what-environment-variables-are-needed-but-they-will-need-to-create-their-own-env-file-with-their-own-sensitive-information"><span>**<wbr/>Note: that you should never commit the .env file to version control. <wbr/>Instead, you should create a .env.sample file with the same variables as the .env file, but without any sensitive information. <wbr/>You can commit the .env.sample file to version control to give other developers an example of what environment variables are needed, but they will need to create their own .env file with their own sensitive information</span></a></li></ul></li>
+<li><a href="#md:npm-scripts"><span>NPM <wbr/>Scripts</span></a></li>
 <li><a href="#md:usage"><span>Usage</span></a></li>
 <li>
 <ul>

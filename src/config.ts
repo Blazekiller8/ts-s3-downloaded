@@ -9,6 +9,5 @@ export const config = {
   region: process.env.AWS_REGION,
   bucketName: process.env.S3_BUCKET_NAME,
   endpoint: process.env.AWS_ENDPOINT || undefined,
+  logDir: process.env.LOG_DIR || './logs',
 };
-
-export const logDir = process.env.LOG_DIR || './logs';

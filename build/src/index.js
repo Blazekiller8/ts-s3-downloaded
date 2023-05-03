@@ -7,22 +7,67 @@
  *                        : https://www.elastic.co/guide/en/ecs-logging/nodejs/current/winston.html#winston
  */
 import { S3Client, GetObjectCommand, paginateListObjectsV2, } from '@aws-sdk/client-s3';
-import winston from 'winston';
+import winston, { format } from 'winston';
 import ecsFormat from '@elastic/ecs-winston-format';
 import { createWriteStream, existsSync, mkdirSync } from 'fs';
 import { pipeline } from 'stream';
 import { promisify } from 'util';
 import { config } from './config.js';
+import { formatDate } from './utils.js';
 import path from 'path';
-// Set up Winston logger
+//Export log folder path
+const LOG_DIR = config.logDir;
+const ERROR_LOGS_DIR = path.join(LOG_DIR, 'error_logs');
+const INFO_LOGS_DIR = path.join(LOG_DIR, 'info_logs');
+const INPUT_LOGS_DIR = path.join(LOG_DIR, 'input_logs');
+const COMBINED_LOGS_DIR = path.join(LOG_DIR, 'combined_logs');
+// Set up Winston logger for general logging
 const logger = winston.createLogger({
     format: ecsFormat(),
     transports: [
         new winston.transports.Console(),
-        new winston.transports.File({ filename: 'error.log', level: 'error' }),
-        new winston.transports.File({ filename: 'combined.log' }),
+        new winston.transports.File({
+            filename: path.join(ERROR_LOGS_DIR, `${formatDate()}-errors.log`),
+            level: 'error',
+            format: format.combine(format.timestamp(), format.json()),
+        }),
+        new winston.transports.File({
+            filename: path.join(INFO_LOGS_DIR, `${formatDate()}-infos.log`),
+            level: 'info',
+            format: format.combine(format.timestamp(), format.json()),
+        }),
+        new winston.transports.File({
+            filename: path.join(INPUT_LOGS_DIR, `${formatDate()}-infos.log`),
+            level: 'notice',
+            format: format.combine(format.timestamp(), format.json()),
+        }),
+        new winston.transports.File({
+            filename: path.join(COMBINED_LOGS_DIR, `${formatDate()}-combined.log`),
+            format: format.combine(format.timestamp(), format.json()),
+        }),
     ],
 });
+// Check if the log folders exists, if not create them
+if (!existsSync(LOG_DIR)) {
+    mkdirSync(LOG_DIR);
+    logger.info(`Created logs folder: ${LOG_DIR}`);
+}
+if (!existsSync(ERROR_LOGS_DIR)) {
+    mkdirSync(ERROR_LOGS_DIR);
+    logger.info(`Created logs folder: ${ERROR_LOGS_DIR}`);
+}
+if (!existsSync(INFO_LOGS_DIR)) {
+    mkdirSync(INFO_LOGS_DIR);
+    logger.info(`Created logs folder: ${INFO_LOGS_DIR}`);
+}
+if (!existsSync(INPUT_LOGS_DIR)) {
+    mkdirSync(INPUT_LOGS_DIR);
+    logger.info(`Created logs folder: ${INFO_LOGS_DIR}`);
+}
+if (!existsSync(COMBINED_LOGS_DIR)) {
+    mkdirSync(COMBINED_LOGS_DIR);
+    logger.info(`Created logs folder: ${COMBINED_LOGS_DIR}`);
+}
 // AWS credentials and S3 bucket  from .env
 const AWS_ACCESS_KEY = config.accessKey;
 const AWS_SECRET_KEY = config.secretKey;
@@ -30,13 +75,13 @@ const AWS_REGION = config.region;
 const S3_BUCKET_NAME = config.bucketName;
 const AWS_ENDPOINT = config.endpoint;
 if (!AWS_ACCESS_KEY || !AWS_SECRET_KEY || !AWS_REGION || !S3_BUCKET_NAME) {
-    logger.error('AWS credentials and S3 bucket information not found in .env file.');
+    logger.error('AWS credentials and S3 bucket information not found in .env file.', { err: new Error('env variables not found') });
     throw new Error('AWS credentials and S3 bucket information not found in .env file.');
 }
 //Loaded from Command Line
 const [, , S3_FOLDER_NAME, LOCAL_FOLDER_NAME] = process.argv;
 if (!S3_FOLDER_NAME || !LOCAL_FOLDER_NAME) {
-    logger.error('S3 folder name and local folder name not provided as command line arguments.');
+    logger.error('S3 folder name and local folder name not provided as command line arguments.', { err: new Error('cmd variables not found') });
     throw new Error('S3 folder name and local folder name must be provided as command line arguments.');
 }
 // S3 client configuration
@@ -49,9 +94,37 @@ const clientConfig = {
 };
 // Required for local testing of AWS S3
 if (AWS_ENDPOINT) {
+    // Configure and Create a Winston logger instance for logging AWS Client Events
+    const SERVER_LOGS_DIR = path.join(LOG_DIR, 'server_logs');
+    if (!existsSync(SERVER_LOGS_DIR)) {
+        mkdirSync(SERVER_LOGS_DIR);
+        logger.info(`Created logs folder: ${SERVER_LOGS_DIR}`);
+    }
+    const clientLogger = winston.createLogger({
+        format: ecsFormat(),
+        transports: [
+            new winston.transports.File({
+                filename: path.join(SERVER_LOGS_DIR, `${formatDate()}-server.log`),
+                format: format.combine(format.timestamp(), format.json()),
+            }),
+        ],
+    });
     clientConfig.endpoint = AWS_ENDPOINT;
     clientConfig.forcePathStyle = true;
-    clientConfig.logger = logger;
+    clientConfig.logger = {
+        debug: (message) => {
+            clientLogger.debug(message);
+        },
+        info: (message) => {
+            clientLogger.info(message);
+        },
+        warn: (message) => {
+            clientLogger.warn(message);
+        },
+        error: (message) => {
+            clientLogger.error(message);
+        },
+    };
 }
 // Create an instance of the S3 client
 const s3Client = new S3Client(clientConfig);
