@@ -1,8 +1,10 @@
 /*
  * To download files from a folder in S3 bucket to local folder with the object key as name
- * @author: Sivaraam T K
- * @modified-on: 2023/04/24
- * @reference: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-s3/modules.html
+ * update: Added custom logging using Winston
+ * author: @Blazekiller8
+ * modified-on: 2023/05/03
+ * reference: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-s3/modules.html
+ *                        : https://www.elastic.co/guide/en/ecs-logging/nodejs/current/winston.html#winston
  */
 import {
   S3Client,
@@ -10,11 +12,26 @@ import {
   GetObjectCommand,
   paginateListObjectsV2,
 } from '@aws-sdk/client-s3';
+import winston from 'winston';
+import ecsFormat from '@elastic/ecs-winston-format';
 import {createWriteStream, existsSync, mkdirSync} from 'fs';
 import {pipeline, Readable} from 'stream';
 import {promisify} from 'util';
-import {config} from './config.js';
+import {config, logDir} from './config.js';
 import path from 'path';
+
+// Set up Winston logger
+const LOG_DIR = logDir;
+const logger = winston.createLogger({
+  format: ecsFormat(),
+  transports: [
+    new winston.transports.Console(),
+    new winston.transports.File({
+      filename: `${LOG_DIR}/${Date.now}-errors.log', level: 'error`,
+    }),
+    new winston.transports.File({filename: `${LOG_DIR}/${Date.now}-infos.log`}),
+  ],
+});
 
 // AWS credentials and S3 bucket  from .env
 const AWS_ACCESS_KEY = config.accessKey;
@@ -24,6 +41,9 @@ const S3_BUCKET_NAME = config.bucketName;
 const AWS_ENDPOINT = config.endpoint;
 
 if (!AWS_ACCESS_KEY || !AWS_SECRET_KEY || !AWS_REGION || !S3_BUCKET_NAME) {
+  logger.error(
+    'AWS credentials and S3 bucket information not found in .env file.'
+  );
   throw new Error(
     'AWS credentials and S3 bucket information not found in .env file.'
   );
@@ -33,6 +53,9 @@ if (!AWS_ACCESS_KEY || !AWS_SECRET_KEY || !AWS_REGION || !S3_BUCKET_NAME) {
 const [, , S3_FOLDER_NAME, LOCAL_FOLDER_NAME] = process.argv;
 
 if (!S3_FOLDER_NAME || !LOCAL_FOLDER_NAME) {
+  logger.error(
+    'S3 folder name and local folder name not provided as command line arguments.'
+  );
   throw new Error(
     'S3 folder name and local folder name must be provided as command line arguments.'
   );
@@ -51,7 +74,7 @@ const clientConfig: S3ClientConfig = {
 if (AWS_ENDPOINT) {
   clientConfig.endpoint = AWS_ENDPOINT;
   clientConfig.forcePathStyle = true;
-  clientConfig.logger = console;
+  clientConfig.logger = logger;
 }
 
 // Create an instance of the S3 client
@@ -60,7 +83,7 @@ const s3Client = new S3Client(clientConfig);
 // Check if the local folder exists, if not create it
 if (!existsSync(LOCAL_FOLDER_NAME)) {
   mkdirSync(LOCAL_FOLDER_NAME);
-  console.log(`Created local folder: ${LOCAL_FOLDER_NAME}`);
+  logger.info(`Created local folder: ${LOCAL_FOLDER_NAME}`);
 }
 
 // Function to download objects in the specified S3 bucket and folder
@@ -83,11 +106,12 @@ async function downloadFilesParallel(): Promise<void> {
   try {
     var pageCount = 0;
     const downloadFilePromises = [];
+    logger.info('Started with Listing of Objects in S3 Bucket');
     for await (const page of paginateListObjectsV2(
       paginatorConfig,
       listCommandInput
     )) {
-      console.log(`Retrieved page no. ${++pageCount}`);
+      logger.info(`Retrieved page no. ${++pageCount}`);
       if (page.Contents) {
         for (const object of page.Contents) {
           if (object.Key) {
@@ -102,11 +126,12 @@ async function downloadFilesParallel(): Promise<void> {
     }
     await Promise.all(downloadFilePromises);
   } catch (error: any) {
-    console.error('Error downloading files in parallel:', error);
+    logger.error('Error downloading files in parallel:', error);
   }
 }
 
 async function downloadFile(key: string, fullFilePath: string): Promise<void> {
+  logger.info(`Starting Download of file: ${key}`);
   // Create a writable stream to the local file
   const fileStream = createWriteStream(fullFilePath);
   // Get the specified object from S3
@@ -122,7 +147,7 @@ async function downloadFile(key: string, fullFilePath: string): Promise<void> {
     if (objectBuffer.Body) {
       await promisify(pipeline)(objectBuffer.Body as Readable, fileStream);
     }
-    console.log(`Downloaded ${key}`);
+    logger.info(`Downloaded ${key}`);
   } catch (getCommandError: any) {
     // Handle any errors that occur when downloading objects
     if (getCommandError.$metadata) {
@@ -130,7 +155,7 @@ async function downloadFile(key: string, fullFilePath: string): Promise<void> {
         $metadata: {requestId, cfId, extendedRequestId, httpStatusCode},
         $response: errorResponse,
       } = getCommandError;
-      console.log({
+      logger.error({
         requestId,
         cfId,
         extendedRequestId,
@@ -139,16 +164,17 @@ async function downloadFile(key: string, fullFilePath: string): Promise<void> {
       });
     } else {
       const {errorCode, errorMessage} = getCommandError;
-      console.log({errorCode, errorMessage});
+      logger.error({errorCode, errorMessage});
     }
+    logger.error(`Failed to download ${key}`);
     throw new Error('Failed to get object' + key);
   }
 }
 
 downloadFilesParallel()
   .then(() => {
-    console.log('Successfully downloaded files');
+    logger.info('Successfully downloaded files');
   })
   .catch(err => {
-    console.error('Error downloading folder contents:', err);
+    logger.error('Error downloading folder contents:', err);
   });

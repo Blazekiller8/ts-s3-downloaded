@@ -1,16 +1,19 @@
-version: '3.0'
+version: '3.3'
 
 services:
-
   localstack:
+    container_name: localstack
     image: localstack/localstack:latest
+    user: :root
     environment:
-      - AWS_DEFAULT_REGION=us-east-1
       - EDGE_PORT=4566
+      - DEBUG=1
+      - S3_ERROR_PROBABILITY=0.1
       - SERVICES=s3
-      - user=root
+      - DATA_DIR=/tmp/localstack/data
+      - LS_LOG=trace-internal
     ports:
       - '4566:4566'
     volumes:
-      - "${TMPDIR:-/tmp/localstack}:/tmp/localstack"
-      - "/var/run/docker.sock:/var/run/docker.sock"
+      - '${TMPDIR:-/tmp/localstack}:/tmp/localstack'
+      - '/var/run/docker.sock:/var/run/docker.sock'

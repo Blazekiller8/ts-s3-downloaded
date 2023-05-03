@@ -56,6 +56,7 @@ AWS_SECRET_KEY=your_aws_secret_access_key
 AWS_REGION=your_aws_region
 S3_BUCKET_NAME=your_s3_bucket_name
 AWS_ENDPOINT=your_aws_endpoint(optional)
+LOG_DIR=your_log_directory(optional)
 ```
 
 ### \*\*Note: that you should never commit the .env file to version control. Instead, you should create a .env.sample file with the same variables as the .env file, but without any sensitive information. You can commit the .env.sample file to version control to give other developers an example of what environment variables are needed, but they will need to create their own .env file with their own sensitive information

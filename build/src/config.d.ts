@@ -5,3 +5,4 @@ export declare const config: {
     bucketName: string | undefined;
     endpoint: string | undefined;
 };
+export declare const logDir: string;

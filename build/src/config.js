@@ -8,4 +8,5 @@ export const config = {
     bucketName: process.env.S3_BUCKET_NAME,
     endpoint: process.env.AWS_ENDPOINT || undefined,
 };
+export const logDir = process.env.LOG_DIR || './logs';
 //# sourceMappingURL=config.js.map
