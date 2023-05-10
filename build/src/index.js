@@ -1,20 +1,12 @@
 /*
  * To download files from a folder in S3 bucket to local folder with the object key as name
- * update: Added custom logging using Winston
+ * update: Improved  custom logging using Winston
  * author: @Blazekiller8
- * modified-on: 2023/05/03
+ * modified-on: 2023/05/10
  * reference: https://docs.aws.amazon.com/AWSJavaScriptSDK/v3/latest/clients/client-s3/modules.html
  *                        : https://www.elastic.co/guide/en/ecs-logging/nodejs/current/winston.html#winston
  */
-import { S3Client, GetObjectCommand, paginateListObjectsV2, } from '@aws-sdk/client-s3';
-import winston, { format } from 'winston';
-import ecsFormat from '@elastic/ecs-winston-format';
-import { createWriteStream, existsSync, mkdirSync } from 'fs';
-import { pipeline } from 'stream';
-import { promisify } from 'util';
-import { config } from './config.js';
-import { formatDate } from './utils.js';
-import path from 'path';
+import { S3Client, GetObjectCommand, paginateListObjectsV2, winston, format, ecsFormat, createWriteStream, existsSync, mkdirSync, pipeline, promisify, config, formatDate, formatPrint, path, } from './import.js';
 //Export log folder path
 const LOG_DIR = config.logDir;
 const ERROR_LOGS_DIR = path.join(LOG_DIR, 'error_logs');
@@ -25,25 +17,27 @@ const COMBINED_LOGS_DIR = path.join(LOG_DIR, 'combined_logs');
 const logger = winston.createLogger({
     format: ecsFormat(),
     transports: [
-        new winston.transports.Console(),
+        new winston.transports.Console({
+            format: winston.format.combine(winston.format.colorize(), ecsFormat(), format.printf(info => formatPrint(info))),
+        }),
         new winston.transports.File({
             filename: path.join(ERROR_LOGS_DIR, `${formatDate()}-errors.log`),
             level: 'error',
-            format: format.combine(format.timestamp(), format.json()),
+            options: { flags: 'a' }, // Append to the file
         }),
         new winston.transports.File({
             filename: path.join(INFO_LOGS_DIR, `${formatDate()}-infos.log`),
             level: 'info',
-            format: format.combine(format.timestamp(), format.json()),
+            options: { flags: 'a' },
         }),
         new winston.transports.File({
-            filename: path.join(INPUT_LOGS_DIR, `${formatDate()}-infos.log`),
-            level: 'notice',
-            format: format.combine(format.timestamp(), format.json()),
+            filename: path.join(INPUT_LOGS_DIR, `${formatDate()}-inputs.log`),
+            level: 'warn',
+            options: { flags: 'a' },
         }),
         new winston.transports.File({
             filename: path.join(COMBINED_LOGS_DIR, `${formatDate()}-combined.log`),
-            format: format.combine(format.timestamp(), format.json()),
+            options: { flags: 'a' },
         }),
     ],
 });
@@ -74,15 +68,67 @@ const AWS_SECRET_KEY = config.secretKey;
 const AWS_REGION = config.region;
 const S3_BUCKET_NAME = config.bucketName;
 const AWS_ENDPOINT = config.endpoint;
-if (!AWS_ACCESS_KEY || !AWS_SECRET_KEY || !AWS_REGION || !S3_BUCKET_NAME) {
-    logger.error('AWS credentials and S3 bucket information not found in .env file.', { err: new Error('env variables not found') });
-    throw new Error('AWS credentials and S3 bucket information not found in .env file.');
-}
 //Loaded from Command Line
 const [, , S3_FOLDER_NAME, LOCAL_FOLDER_NAME] = process.argv;
-if (!S3_FOLDER_NAME || !LOCAL_FOLDER_NAME) {
-    logger.error('S3 folder name and local folder name not provided as command line arguments.', { err: new Error('cmd variables not found') });
-    throw new Error('S3 folder name and local folder name must be provided as command line arguments.');
+if (AWS_ACCESS_KEY) {
+    logger.warn('AWS_ACCESS_KEY found in .env file');
+}
+else {
+    logger.warn('AWS_ACCESS_KEY not found in .env file');
+    logger.error('AWS_ACCESS_KEY  not found in .env file.', {
+        err: new Error('AWS_ACCESS_KEY not found'),
+    });
+    throw new Error('AWS_ACCESS_KEY  not found in .env file');
+}
+if (AWS_SECRET_KEY) {
+    logger.warn('AWS_SECRET_KEY found in .env file');
+}
+else {
+    logger.warn('AWS_SECRET_KEY not found in .env file');
+    logger.error('AWS_SECRET_KEY  not found in .env file.', {
+        err: new Error('AWS_SECRET_KEY not found'),
+    });
+    throw new Error('AWS_SECRET_KEY  not found in .env file');
+}
+if (AWS_REGION) {
+    logger.warn('AWS_REGION found in .env file');
+}
+else {
+    logger.warn('AWS_REGION not found in .env file');
+    logger.error('AWS_REGION  not found in .env file.', {
+        err: new Error('AWS_REGION not found'),
+    });
+    throw new Error('AWS_REGION  not found in .env file');
+}
+if (S3_BUCKET_NAME) {
+    logger.warn('S3_BUCKET_NAME found in .env file');
+}
+else {
+    logger.warn('S3_BUCKET_NAME not found in .env file');
+    logger.error('S3_BUCKET_NAME  not found in .env file.', {
+        err: new Error('S3_BUCKET_NAME not found'),
+    });
+    throw new Error('S3_BUCKET_NAME  not found in .env file');
+}
+if (S3_FOLDER_NAME) {
+    logger.warn('S3_FOLDER_NAME Loaded from Command Line');
+}
+else {
+    logger.warn('S3_FOLDER_NAME not found in Command Line');
+    logger.error('S3_FOLDER_NAME not found in Command Line', {
+        err: new Error('S3_FOLDER_NAME not found in Command Line'),
+    });
+    throw new Error('S3_FOLDER_NAME not found in Command Line');
+}
+if (LOCAL_FOLDER_NAME) {
+    logger.warn('LOCAL_FOLDER_NAME Loaded from Command Line');
+}
+else {
+    logger.warn('LOCAL_FOLDER_NAME not found in Command Line');
+    logger.error('LOCAL_FOLDER_NAME not found in Command Line', {
+        err: new Error('LOCAL_FOLDER_NAME not found in Command Line'),
+    });
+    throw new Error('LOCAL_FOLDER_NAME not found in Command Line');
 }
 // S3 client configuration
 const clientConfig = {
@@ -94,6 +140,8 @@ const clientConfig = {
 };
 // Required for local testing of AWS S3
 if (AWS_ENDPOINT) {
+    logger.warn('AWS_ENDPOINT found in .env file');
+    logger.info("Programming running in 'dev' environment");
     // Configure and Create a Winston logger instance for logging AWS Client Events
     const SERVER_LOGS_DIR = path.join(LOG_DIR, 'server_logs');
     if (!existsSync(SERVER_LOGS_DIR)) {
@@ -105,7 +153,7 @@ if (AWS_ENDPOINT) {
         transports: [
             new winston.transports.File({
                 filename: path.join(SERVER_LOGS_DIR, `${formatDate()}-server.log`),
-                format: format.combine(format.timestamp(), format.json()),
+                options: { flags: 'a' },
             }),
         ],
     });
@@ -116,13 +164,22 @@ if (AWS_ENDPOINT) {
             clientLogger.debug(message);
         },
         info: (message) => {
-            clientLogger.info(message);
+            const logMessage = typeof message === 'object'
+                ? JSON.stringify(message, null, 2)
+                : message;
+            clientLogger.info(logMessage);
         },
         warn: (message) => {
-            clientLogger.warn(message);
+            const logMessage = typeof message === 'object'
+                ? JSON.stringify(message, null, 2)
+                : message;
+            clientLogger.warn(logMessage);
         },
         error: (message) => {
-            clientLogger.error(message);
+            const logMessage = typeof message === 'object'
+                ? JSON.stringify(message, null, 2)
+                : message;
+            clientLogger.error(logMessage);
         },
     };
 }
@@ -208,12 +265,13 @@ async function downloadFile(key, fullFilePath) {
             logger.error({ errorCode, errorMessage });
         }
         logger.error(`Failed to download ${key}`);
-        throw new Error('Failed to get object' + key);
+        // throw new Error('Failed to get object ' + key);
     }
 }
 downloadFilesParallel()
     .then(() => {
     logger.info('Successfully downloaded files');
+    logger.error('Successfully Executed the program');
 })
     .catch(err => {
     logger.error('Error downloading folder contents:', err);

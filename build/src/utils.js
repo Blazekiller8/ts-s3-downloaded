@@ -3,10 +3,24 @@ export function formatDate(date = new Date()) {
     const year = date.getUTCFullYear();
     const month = date.getUTCMonth() + 1;
     const day = date.getUTCDate();
-    const hours = date.getUTCHours();
-    const minutes = date.getUTCMinutes();
-    const seconds = date.getUTCSeconds();
-    const formattedDate = `${year}_${month < 10 ? '0' + month : month}_${day < 10 ? '0' + day : day}-${hours < 10 ? '0' + hours : hours}_${minutes < 10 ? '0' + minutes : minutes}_${seconds < 10 ? '0' + seconds : seconds}`;
+    const formattedDate = `${year}_${month < 10 ? '0' + month : month}_${day < 10 ? '0' + day : day}`;
     return formattedDate;
+}
+export function formatPrint(info) {
+    const message = info?.message || '';
+    const meta = info?.meta || {};
+    const level = info?.level || '';
+    const timestamp = info?.timestamp || '';
+    const context = meta?.context || '';
+    const stack = meta?.stack || '';
+    let output = `${timestamp} [${level}]`;
+    if (context) {
+        output += ` [${context}]`;
+    }
+    output += ` ${message}`;
+    if (stack) {
+        output += `\n${stack}`;
+    }
+    return output;
 }
 //# sourceMappingURL=utils.js.map

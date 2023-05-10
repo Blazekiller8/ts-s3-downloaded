@@ -67,8 +67,6 @@ LOG_DIR=your_log_directory(optional)
 
 The following NPM scripts are available in this project (check package.json for more):
 
-- `npm run lint`: lints the project
-- `npm run fix`: fixes linting errors
 - `npm run format`: formats the project
 - `npm run types`: checks the types in the project
 - `npm run clean`: cleans the existing build
