@@ -250,7 +250,7 @@ async function downloadFilesParallel(): Promise<void> {
   };
 
   try {
-    var pageCount = 0;
+    let pageCount = 0;
     const downloadFilePromises = [];
     logger.info('Started with Listing of Objects in S3 Bucket');
     for await (const page of paginateListObjectsV2(
@@ -292,34 +292,33 @@ async function downloadFile(key: string, fullFilePath: string): Promise<void> {
     const objectBuffer = await s3Client.send(getCommand);
     if (objectBuffer.Body) {
       await promisify(pipeline)(objectBuffer.Body as Readable, fileStream);
-    }
-    logger.info(`Downloaded ${key}`);
-  } catch (getCommandError: any) {
-    // Handle any errors that occur when downloading objects
-    if (getCommandError.$metadata) {
-      const {
-        $metadata: {requestId, cfId, extendedRequestId, httpStatusCode},
-        $response: errorResponse,
-      } = getCommandError;
-      logger.error({
-        requestId,
-        cfId,
-        extendedRequestId,
-        httpStatusCode,
-        errorResponse,
-      });
+      logger.info(`Downloaded ${key}`);
     } else {
-      const {errorCode, errorMessage} = getCommandError;
-      logger.error({errorCode, errorMessage});
+      logger.error(`Failure to download ${key}`);
     }
-    logger.error(`Failed to download ${key}`);
+  } catch (getCommandError: any) {
+//#TODO: fix error handling for download
+    // Handle any errors that occur when downloading objects
+    // if (getCommandError.$metadata) {
+    //   const {requestId, cfId, extendedRequestId, httpStatusCode} =
+    //     getCommandError.$metadata;
+    //   logger.error({
+    //     requestId,
+    //     cfId,
+    //     extendedRequestId,
+    //     httpStatusCode,
+    //     error: getCommandError.message, // Extract only the error message
+    //   });
+    // } else {
+    //   const {errorCode, errorMessage, name, message, stack} = getCommandError;
+    //   logger.error({errorCode, errorMessage, name, message, stack});
+    // }
   }
 }
 
 downloadFilesParallel()
   .then(() => {
     logger.info('Successfully downloaded files');
-    logger.error('Successfully Executed the program');
   })
   .catch(err => {
     logger.error('Error downloading folder contents:', err);

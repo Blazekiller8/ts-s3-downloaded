@@ -10,9 +10,8 @@ import { config } from './config.js';
 const AWS_ACCESS_KEY = config.accessKey;
 const AWS_SECRET_KEY = config.secretKey;
 const AWS_REGION = config.region;
-const S3_BUCKET_NAME = config.bucketName;
 const AWS_ENDPOINT = config.endpoint;
-if (!AWS_ACCESS_KEY || !AWS_SECRET_KEY || !AWS_REGION || !S3_BUCKET_NAME) {
+if (!AWS_ACCESS_KEY || !AWS_SECRET_KEY || !AWS_REGION) {
     throw new Error('AWS credentials and S3 bucket information not found in .env file.');
 }
 // S3 client configuration
@@ -32,7 +31,7 @@ const s3Client = new S3Client(clientConfig);
 async function uploadMultipleTimes() {
     const bucketName = 'test-bucket';
     const keyPrefix = 'test/test';
-    const numberOfUploads = 1500; // Upload the file under more than 1000 unique names
+    const numberOfUploads = 1100; // Upload the file under more than 1000 unique names
     const promises = [];
     for (let i = 0; i < numberOfUploads; i++) {
         const uniqueKey = `${keyPrefix}-${i}.txt`;
