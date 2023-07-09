@@ -51,7 +51,7 @@
     "@elastic/ecs-winston-format": "^1.3.1",
     "@types/winston": "^2.4.4",
     "aws-sdk": "^2.1397.0",
-    "dotenv": "^16.1.4",
+    "dotenv": "^16.3.1",
     "fs": "^0.0.1-security",
     "logform": "^2.5.1",
     "stream": "^0.0.2",
