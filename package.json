@@ -55,7 +55,7 @@
     "fs": "^0.0.2",
     "logform": "^2.5.1",
     "stream": "^0.0.2",
-    "winston": "^3.9.0",
+    "winston": "^3.10.0",
     "winston-elasticsearch": "^0.17.2",
     "winston-transport": "^4.5.0"
   }
